@@ -28,6 +28,7 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
+from scipy.stats import pearsonr
 
 from transformers import (
     WEIGHTS_NAME,
@@ -184,7 +185,10 @@ def train(args, train_dataset, model, tokenizer):
     # Check if continuing training from a checkpoint
     if os.path.exists(args.model_name_or_path):
         # set global_step to gobal_step of last saved checkpoint from model path
-        global_step = int(args.model_name_or_path.split("-")[-1].split("/")[0])
+        try:
+            global_step = int(args.model_name_or_path.split("-")[-1].split("/")[0])
+        except ValueError:
+            global_step = 0
         epochs_trained = global_step // (len(train_dataloader) // args.gradient_accumulation_steps)
         steps_trained_in_current_epoch = global_step % (len(train_dataloader) // args.gradient_accumulation_steps)
 
@@ -327,6 +331,7 @@ def evaluate(args, model, tokenizer, prefix=""):
 
             with torch.no_grad():
                 inputs = {"input_ids": batch[0], "attention_mask": batch[1], "labels": batch[3]}
+
                 if args.model_type != "distilbert":
                     inputs["token_type_ids"] = (
                         batch[2] if args.model_type in ["bert", "xlnet", "albert"] else None
@@ -357,6 +362,180 @@ def evaluate(args, model, tokenizer, prefix=""):
             for key in sorted(result.keys()):
                 logger.info("  %s = %s", key, str(result[key]))
                 writer.write("%s = %s\n" % (key, str(result[key])))
+
+        #Write outputs to files
+        all_input_tokens = []
+
+        if args.task_name.split('_')[-1] in ['namb','001','003','01']:
+            with open(os.path.join(args.data_dir, 'test_combined.jsonl'), 'r') as reader:
+                for line in reader:
+                    all_input_tokens.append(json.loads(line)["sentence"])
+        else:
+            with open(os.path.join(args.data_dir, 'test.jsonl'), 'r') as reader:
+                for line in reader:
+                    all_input_tokens.append(json.loads(line)["sentence"])
+
+        all_output_file = os.path.join(eval_output_dir, prefix, "all_outputs.jsonl")
+        with open(all_output_file, "w") as writer:
+            for i, text in enumerate(all_input_tokens):
+                json.dump({'sentence':text,
+                           'pred':preds[i].item(),
+                           'label':out_label_ids[i].item()},writer)
+                writer.write('\n')
+
+        #Outputing results in details
+        all_outputs = []
+        with open(all_output_file, "r") as reader:
+            for line in reader:
+                all_outputs.append(json.loads(line))
+        num_exps = len(all_outputs)
+        if args.task_name.split('_')[-1] == 'control':
+            train_pos = [all_outputs[i] for i in range(num_exps) if i % 4 == 0]
+            train_neg = [all_outputs[i] for i in range(num_exps) if i % 4 == 1]
+            test_pos = [all_outputs[i] for i in range(num_exps) if i % 4 == 2]
+            test_neg = [all_outputs[i] for i in range(num_exps) if i % 4 == 3]
+            ## Labels and preds for computing pearsons
+            train_label = [int(all_outputs[i]['label']) for i in range(num_exps) if ((i % 4 == 0) or (i % 4 == 1))]
+            train_pred = [int(all_outputs[i]['pred']) for i in range(num_exps) if ((i % 4 == 0) or (i % 4 == 1))]
+            test_label = [int(all_outputs[i]['label']) for i in range(num_exps) if ((i % 4 == 2) or (i % 4 == 3))]
+            test_pred = [int(all_outputs[i]['pred']) for i in range(num_exps) if ((i % 4 == 2) or (i % 4 == 3))]
+            pearson_corr, p_val = pearsonr(np.array(test_pred), np.array(test_label))
+            train_pearson, train_p = pearsonr(np.array(train_pred), np.array(train_label))
+            ## Get accuracies
+            train_pos_acc = len([elem for elem in train_pos if elem['pred'] == elem['label']]) / len(train_pos)
+            train_neg_acc = len([elem for elem in train_neg if elem['pred'] == elem['label']]) / len(train_neg)
+            test_pos_acc = len([elem for elem in test_pos if elem['pred'] == elem['label']]) / len(test_pos)
+            test_neg_acc = len([elem for elem in test_neg if elem['pred'] == elem['label']]) / len(test_neg)
+            logger.info("Condition = training, label = 1, num_exps = %s, acc = %s", len(train_pos), str(train_pos_acc))
+            logger.info("Condition = training, label = 0, num_exps = %s, acc = %s", len(train_neg), str(train_neg_acc))
+            logger.info("Condition = test, label = 1, num_exps = %s, acc = %s", len(test_pos), str(test_pos_acc))
+            logger.info("Condition = test, label = 0, num_exps = %s, acc = %s", len(test_neg), str(test_neg_acc))
+            logger.info("Condition = test, pearson_corr = %s, p_val = %s", str(pearson_corr), str(p_val))
+
+            #Add results file
+            all_results_file = os.path.join(eval_output_dir, prefix, "all_results.jsonl")
+            with open(all_results_file, "w") as writer:
+                json.dump({'model':args.model_name_or_path.split('/')[-1],
+                           'task_name':args.task_name.lower(),
+                           'learning_rate':args.learning_rate,
+                           '#samples_per_id':4,
+                           'overall_acc': result['acc'],
+                           'test_acc': (test_pos_acc * len(test_pos) + test_neg_acc * len(test_neg)) / (len(test_pos) + len(test_neg)),
+                           'detail_accs': {'train_pos': {'num_egs': len(train_pos), 'acc': train_pos_acc},
+                                          'train_neg': {'num_egs': len(train_neg), 'acc': train_neg_acc},
+                                          'test_pos': {'num_egs': len(test_pos), 'acc': test_pos_acc},
+                                          'test_pos': {'num_egs': len(test_neg), 'acc': test_neg_acc}},
+                           'pearson_corr': pearson_corr,
+                           'p_value': p_val,
+                           'train_pearson:': train_pearson,
+                           'train_p_value': train_p},writer)
+
+        elif args.task_name.split('_')[-1] in ['namb','001','003','01']:
+            train_pos = [all_outputs[i] for i in range(int(num_exps*0.75)) if i % 6 == 0]
+            train_neg = [all_outputs[i] for i in range(int(num_exps*0.75)) if i % 6 == 1]
+            test_pos = [all_outputs[i] for i in range(int(num_exps*0.75)) if i % 6 == 2]
+            test_neg = [all_outputs[i] for i in range(int(num_exps*0.75)) if i % 6 == 3]
+            control_pos = [all_outputs[i] for i in range(int(num_exps*0.75)) if i % 6 == 4]
+            control_neg = [all_outputs[i] for i in range(int(num_exps*0.75)) if i % 6 == 5]
+            control_1_pos = [all_outputs[i+int(num_exps*0.75)] for i in range(int(num_exps*0.25)) if i % 2 == 0]
+            control_1_neg = [all_outputs[i+int(num_exps*0.75)] for i in range(int(num_exps*0.25)) if i % 2 == 1]
+            ## Labels and preds for computing pearsons
+            train_label = [int(all_outputs[i]['label']) for i in range(int(num_exps*0.75)) if ((i % 6 == 0) or (i % 6 == 1))]
+            train_pred = [int(all_outputs[i]['pred']) for i in range(int(num_exps*0.75)) if ((i % 6 == 0) or (i % 6 == 1))]
+            test_label = [int(all_outputs[i]['label']) for i in range(int(num_exps*0.75)) if ((i % 6 == 2) or (i % 6 == 3))]
+            test_pred = [int(all_outputs[i]['pred']) for i in range(int(num_exps*0.75)) if ((i % 6 == 2) or (i % 6 == 3))]
+            control_in_label = [int(all_outputs[i]['label']) for i in range(int(num_exps*0.75)) if ((i % 6 == 4) or (i % 6 == 5))]
+            control_in_pred = [int(all_outputs[i]['pred']) for i in range(int(num_exps*0.75)) if ((i % 6 == 4) or (i % 6 == 5))]
+            control_out_label = [int(all_outputs[i+int(num_exps*0.75)]['label']) for i in range(int(num_exps*0.25)) if ((i % 2 == 0) or (i % 2 == 1))]
+            control_out_pred = [int(all_outputs[i+int(num_exps*0.75)]['pred']) for i in range(int(num_exps*0.25)) if ((i % 2 == 0) or (i % 2 == 1))]
+            pearson_corr, p_val = pearsonr(np.array(test_pred), np.array(test_label))
+            train_pearson, train_p = pearsonr(np.array(train_pred), np.array(train_label))
+            control_in_pearson, control_in_p = pearsonr(np.array(control_in_pred), np.array(control_in_label))
+            control_out_pearson, control_out_p = pearsonr(np.array(control_out_pred), np.array(control_out_label))
+            ## Get accuracies
+            train_pos_acc = len([elem for elem in train_pos if elem['pred'] == elem['label']]) / len(train_pos)
+            train_neg_acc = len([elem for elem in train_neg if elem['pred'] == elem['label']]) / len(train_neg)
+            test_pos_acc = len([elem for elem in test_pos if elem['pred'] == elem['label']]) / len(test_pos)
+            test_neg_acc = len([elem for elem in test_neg if elem['pred'] == elem['label']]) / len(test_neg)
+            control_pos_acc = len([elem for elem in control_pos if elem['pred'] == elem['label']]) / len(control_pos)
+            control_neg_acc = len([elem for elem in control_neg if elem['pred'] == elem['label']]) / len(control_neg)
+            control_1_pos_acc = len([elem for elem in control_1_pos if elem['pred'] == elem['label']]) / len(control_1_pos)
+            control_1_neg_acc = len([elem for elem in control_1_neg if elem['pred'] == elem['label']]) / len(control_1_neg)
+            logger.info("Condition = training, label = 1, num_exps = %s, acc = %s", len(train_pos), str(train_pos_acc))
+            logger.info("Condition = training, label = 0, num_exps = %s, acc = %s", len(train_neg), str(train_neg_acc))
+            logger.info("Condition = test, label = 1, num_exps = %s, acc = %s", len(test_pos), str(test_pos_acc))
+            logger.info("Condition = test, label = 0, num_exps = %s, acc = %s", len(test_neg), str(test_neg_acc))
+            logger.info("Condition = test, pearson_corr = %s, p_val = %s", str(pearson_corr), str(p_val))
+            logger.info("Condition = control_1_1, label = 1, num_exps = %s, acc = %s", len(control_pos), str(control_pos_acc))
+            logger.info("Condition = control_0_0, label = 0, num_exps = %s, acc = %s", len(control_neg), str(control_neg_acc))
+            logger.info("Condition = control_1_0, label = 1, num_exps = %s, acc = %s", len(control_1_pos), str(control_1_pos_acc))
+            logger.info("Condition = control_0_1, label = 0, num_exps = %s, acc = %s", len(control_1_neg), str(control_1_neg_acc))
+            #Add results file
+            all_results_file = os.path.join(eval_output_dir, prefix, "all_results.jsonl")
+            with open(all_results_file, "w") as writer:
+                json.dump({'model':args.model_name_or_path.split('/')[-1],
+                           'task_name':args.task_name.lower(),
+                           'learning_rate':args.learning_rate,
+                           '#samples_per_id':8,
+                           'overall_acc': result['acc'],
+                           'test_acc': (test_pos_acc * len(test_pos) + test_neg_acc * len(test_neg)) / (len(test_pos) + len(test_neg)),
+                           'detail_accs': {'train_pos': {'num_egs': len(train_pos), 'acc': train_pos_acc},
+                                          'train_neg': {'num_egs': len(train_neg), 'acc': train_neg_acc},
+                                          'test_pos': {'num_egs': len(test_pos), 'acc': test_pos_acc},
+                                          'test_pos': {'num_egs': len(test_neg), 'acc': test_neg_acc},
+                                          'control_1_1': {'num_egs': len(control_pos), 'acc': control_pos_acc},
+                                          'control_0_0': {'num_egs': len(control_neg), 'acc': control_neg_acc},
+                                          'control_1_0': {'num_egs': len(control_1_pos), 'acc': control_pos_acc},
+                                          'control_0_1': {'num_egs': len(control_1_neg), 'acc': control_1_neg_acc}},
+                           'pearson_corr': pearson_corr,
+                           'p_value': p_val,
+                           'train_pearson:': train_pearson,
+                           'train_p_value': train_p,
+                           'control_in_pearson:': control_in_pearson,
+                           'control_in_p': control_in_p,
+                           'control_out_pearson:': control_out_pearson,
+                           'control_out_p': control_out_p},writer)
+
+        else:
+            train_pos = [all_outputs[i] for i in range(num_exps) if i % 6 == 0]
+            train_neg = [all_outputs[i] for i in range(num_exps) if i % 6 == 1]
+            test_pos = [all_outputs[i] for i in range(num_exps) if i % 6 == 2]
+            test_neg = [all_outputs[i] for i in range(num_exps) if i % 6 == 3]
+            control_pos = [all_outputs[i] for i in range(num_exps) if i % 6 == 4]
+            control_neg = [all_outputs[i] for i in range(num_exps) if i % 6 == 5]
+            test_label = [int(all_outputs[i]['label']) for i in range(num_exps) if ((i % 6 == 2) or (i % 6 == 3))]
+            test_pred = [int(all_outputs[i]['pred']) for i in range(num_exps) if ((i % 6 == 2) or (i % 6 == 3))]
+            pearson_corr, p_val = pearsonr(np.array(test_pred), np.array(test_label))
+            train_pos_acc = len([elem for elem in train_pos if elem['pred'] == elem['label']]) / len(train_pos)
+            train_neg_acc = len([elem for elem in train_neg if elem['pred'] == elem['label']]) / len(train_neg)
+            test_pos_acc = len([elem for elem in test_pos if elem['pred'] == elem['label']]) / len(test_pos)
+            test_neg_acc = len([elem for elem in test_neg if elem['pred'] == elem['label']]) / len(test_neg)
+            control_pos_acc = len([elem for elem in control_pos if elem['pred'] == elem['label']]) / len(control_pos)
+            control_neg_acc = len([elem for elem in control_neg if elem['pred'] == elem['label']]) / len(control_neg)
+            logger.info("Condition = training, label = 1, num_exps = %s, acc = %s", len(train_pos), str(train_pos_acc))
+            logger.info("Condition = training, label = 0, num_exps = %s, acc = %s", len(train_neg), str(train_neg_acc))
+            logger.info("Condition = test, label = 1, num_exps = %s, acc = %s", len(test_pos), str(test_pos_acc))
+            logger.info("Condition = test, label = 0, num_exps = %s, acc = %s", len(test_neg), str(test_neg_acc))
+            logger.info("Condition = test, pearson_corr = %s, p_val = %s", str(pearson_corr), str(p_val))
+            logger.info("Condition = control, label = 1, num_exps = %s, acc = %s", len(control_pos), str(control_pos_acc))
+            logger.info("Condition = control, label = 0, num_exps = %s, acc = %s", len(control_neg), str(control_neg_acc))
+
+            #Add results file
+            all_results_file = os.path.join(eval_output_dir, prefix, "all_results.jsonl")
+            with open(all_results_file, "w") as writer:
+                json.dump({'model':args.model_name_or_path.split('/')[-1],
+                           'task_name':args.task_name.lower(),
+                           'learning_rate':args.learning_rate,
+                           '#samples_per_id':6,
+                           'overall_acc': result['acc'],
+                           'detail_accs': [train_pos_acc,
+                                           train_neg_acc,
+                                           test_pos_acc,
+                                           test_neg_acc,
+                                           control_pos_acc,
+                                           control_neg_acc],
+                           'pearson_corr': pearson_corr,
+                           'p_value': p_val},writer)
 
     return results
 
