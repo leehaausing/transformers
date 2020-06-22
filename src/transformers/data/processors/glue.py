@@ -17,6 +17,7 @@
 
 import logging
 import os
+import json
 
 from ...file_utils import is_tf_available
 from .utils import DataProcessor, InputExample, InputFeatures
@@ -165,6 +166,7 @@ def glue_convert_examples_to_features(
 
     return features
 
+#Original GLUE Tasks
 
 class MrpcProcessor(DataProcessor):
     """Processor for the MRPC data set (GLUE version)."""
@@ -204,7 +206,6 @@ class MrpcProcessor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
-
 class MnliProcessor(DataProcessor):
     """Processor for the MultiNLI data set (GLUE version)."""
 
@@ -242,14 +243,12 @@ class MnliProcessor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
-
 class MnliMismatchedProcessor(MnliProcessor):
     """Processor for the MultiNLI Mismatched data set (GLUE version)."""
 
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(self._read_tsv(os.path.join(data_dir, "dev_mismatched.tsv")), "dev_matched")
-
 
 class ColaProcessor(DataProcessor):
     """Processor for the CoLA data set (GLUE version)."""
@@ -284,7 +283,6 @@ class ColaProcessor(DataProcessor):
             label = line[1]
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
-
 
 class Sst2Processor(DataProcessor):
     """Processor for the SST-2 data set (GLUE version)."""
@@ -322,7 +320,6 @@ class Sst2Processor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
 
-
 class StsbProcessor(DataProcessor):
     """Processor for the STS-B data set (GLUE version)."""
 
@@ -359,7 +356,6 @@ class StsbProcessor(DataProcessor):
             label = line[-1]
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
-
 
 class QqpProcessor(DataProcessor):
     """Processor for the QQP data set (GLUE version)."""
@@ -401,7 +397,6 @@ class QqpProcessor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
-
 class QnliProcessor(DataProcessor):
     """Processor for the QNLI data set (GLUE version)."""
 
@@ -438,7 +433,6 @@ class QnliProcessor(DataProcessor):
             label = line[-1]
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
-
 
 class RteProcessor(DataProcessor):
     """Processor for the RTE data set (GLUE version)."""
@@ -477,7 +471,6 @@ class RteProcessor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
-
 class WnliProcessor(DataProcessor):
     """Processor for the WNLI data set (GLUE version)."""
 
@@ -515,6 +508,4056 @@ class WnliProcessor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
+class BoolQProcessor(DataProcessor):
+    """Processor for the BoolQ data set (SuperGLUE version)."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["question"].numpy().decode("utf-8"),
+            tensor_dict["passage"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "val.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["false", "true"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for line in lines:
+            guid = "%s-%s" % (set_type, line["idx"])
+            text_a = line["passage"]
+            text_b = line["question"]
+            label = str(line["label"]).lower()
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
+#All control paradigms
+
+class absolute_token_position_control_Processor(DataProcessor):
+    """Processor for absolute_token_position_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["surface_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_control_Processor(DataProcessor):
+    """Processor for antonyms_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_control_Processor(DataProcessor):
+    """Processor for control_raising_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_control_Processor(DataProcessor):
+    """Processor for irregular_form_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class length_control_Processor(DataProcessor):
+    """Processor for length_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["surface_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class lexical_content_the_control_Processor(DataProcessor):
+    """Processor for lexical_content_the_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["surface_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_control_Processor(DataProcessor):
+    """Processor for same_clause_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class relative_position_control_Processor(DataProcessor):
+    """Processor for relative_position_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["surface_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_control_Processor(DataProcessor):
+    """Processor for syntactic_category_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class title_case_control_Processor(DataProcessor):
+    """Processor for title_case_control."""
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["surface_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Antonyms and other phenomena
+
+class antonyms_absolute_token_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_length_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_lexical_content_the_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_relative_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_title_case_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Control Raising and other phenomena
+
+class control_raising_absolute_token_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_length_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_lexical_content_the_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_relative_token_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_title_case_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Irregular Form and other phenomena
+
+class irregular_form_absolute_token_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_length_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_lexical_content_the_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_relative_token_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_title_case_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Main Verb and other phenomena
+
+class main_verb_absolute_token_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_length_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_lexical_content_the_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_relative_token_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_title_case_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Syntactic Category and other phenomena
+
+class syntactic_category_absolute_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_length_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_lexical_content_the_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_relative_position_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_title_case_namb_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Antonyms and other phenomena 001
+
+class antonyms_absolute_token_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_length_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_lexical_content_the_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_relative_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_title_case_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Control Raising and other phenomena 001
+
+class control_raising_absolute_token_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_length_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_lexical_content_the_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_relative_token_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_title_case_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Irregular Form and other phenomena 001
+
+class irregular_form_absolute_token_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_length_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_lexical_content_the_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_relative_token_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_title_case_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Main Verb and other phenomena 001
+
+class main_verb_absolute_token_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_length_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_lexical_content_the_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_relative_token_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_title_case_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Syntactic Category and other phenomena 001
+
+class syntactic_category_absolute_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_length_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_lexical_content_the_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_relative_position_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_title_case_001_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.001.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Antonyms and other phenomena 003
+
+class antonyms_absolute_token_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_length_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_lexical_content_the_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_relative_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_title_case_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Control Raising and other phenomena 003
+
+class control_raising_absolute_token_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_length_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_lexical_content_the_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_relative_token_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_title_case_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Irregular Form and other phenomena 003
+
+class irregular_form_absolute_token_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_length_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_lexical_content_the_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_relative_token_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_title_case_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Main Verb and other phenomena 003
+
+class main_verb_absolute_token_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_length_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_lexical_content_the_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_relative_token_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_title_case_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Syntactic Category and other phenomena 003
+
+class syntactic_category_absolute_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_length_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_lexical_content_the_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_relative_position_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_title_case_003_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.003.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Antonyms and other phenomena 01
+
+class antonyms_absolute_token_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_length_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_lexical_content_the_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_relative_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class antonyms_title_case_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Control Raising and other phenomena 01
+
+class control_raising_absolute_token_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_length_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_lexical_content_the_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_relative_token_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class control_raising_title_case_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Irregular Form and other phenomena 01
+
+class irregular_form_absolute_token_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_length_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_lexical_content_the_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_relative_token_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class irregular_form_title_case_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Main Verb and other phenomena 01
+
+class main_verb_absolute_token_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_length_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_lexical_content_the_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_relative_token_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class main_verb_title_case_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+#Compare Syntactic Category and other phenomena 01
+
+class syntactic_category_absolute_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_length_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_lexical_content_the_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_relative_position_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
+class syntactic_category_title_case_01_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train_0.01.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_combined.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
 
 glue_tasks_num_labels = {
     "cola": 2,
@@ -526,6 +4569,118 @@ glue_tasks_num_labels = {
     "qnli": 2,
     "rte": 2,
     "wnli": 2,
+    "boolq": 2,
+    "length_control": 2,
+    "syntactic_category_control": 2,
+    "antonyms_control": 2,
+    "control_raising_control": 2,
+    "control_raising_control": 2,
+    "absolute_token_position_control": 2,
+    "irregular_form_control": 2,
+    "lexical_content_the_control": 2,
+    "relative_position_control": 2,
+    "title_case_control": 2,
+    "main_verb_control": 2,
+    "antonyms_absolute_token_position_namb": 2,
+    "antonyms_length_namb": 2,
+    "antonyms_lexical_content_the_namb": 2,
+    "antonyms_relative_position_namb": 2,
+    "antonyms_title_case_namb": 2,
+    "control_raising_absolute_token_position_namb": 2,
+    "control_raising_length_namb": 2,
+    "control_raising_lexical_content_the_namb": 2,
+    "control_raising_relative_token_position_namb": 2,
+    "control_raising_title_case_namb": 2,
+    "irregular_form_absolute_token_position_namb": 2,
+    "irregular_form_length_namb": 2,
+    "irregular_form_lexical_content_the_namb": 2,
+    "irregular_form_relative_token_position_namb": 2,
+    "irregular_form_title_case_namb": 2,
+    "main_verb_absolute_token_position_namb": 2,
+    "main_verb_length_namb": 2,
+    "main_verb_lexical_content_the_namb": 2,
+    "main_verb_relative_token_position_namb": 2,
+    "main_verb_title_case_namb": 2,
+    "syntactic_category_absolute_position_namb": 2,
+    "syntactic_category_length_namb": 2,
+    "syntactic_category_lexical_content_the_namb": 2,
+    "syntactic_category_relative_position_namb": 2,
+    "syntactic_category_title_case_namb": 2,
+    "antonyms_absolute_token_position_001": 2,
+    "antonyms_length_001": 2,
+    "antonyms_lexical_content_the_001": 2,
+    "antonyms_relative_position_001": 2,
+    "antonyms_title_case_001": 2,
+    "control_raising_absolute_token_position_001": 2,
+    "control_raising_length_001": 2,
+    "control_raising_lexical_content_the_001": 2,
+    "control_raising_relative_token_position_001": 2,
+    "control_raising_title_case_001": 2,
+    "irregular_form_absolute_token_position_001": 2,
+    "irregular_form_length_001": 2,
+    "irregular_form_lexical_content_the_001": 2,
+    "irregular_form_relative_token_position_001": 2,
+    "irregular_form_title_case_001": 2,
+    "main_verb_absolute_token_position_001": 2,
+    "main_verb_length_001": 2,
+    "main_verb_lexical_content_the_001": 2,
+    "main_verb_relative_token_position_001": 2,
+    "main_verb_title_case_001": 2,
+    "syntactic_category_absolute_position_001": 2,
+    "syntactic_category_length_001": 2,
+    "syntactic_category_lexical_content_the_001": 2,
+    "syntactic_category_relative_position_001": 2,
+    "syntactic_category_title_case_001": 2,
+    "antonyms_absolute_token_position_003": 2,
+    "antonyms_length_003": 2,
+    "antonyms_lexical_content_the_003": 2,
+    "antonyms_relative_position_003": 2,
+    "antonyms_title_case_003": 2,
+    "control_raising_absolute_token_position_003": 2,
+    "control_raising_length_003": 2,
+    "control_raising_lexical_content_the_003": 2,
+    "control_raising_relative_token_position_003": 2,
+    "control_raising_title_case_003": 2,
+    "irregular_form_absolute_token_position_003": 2,
+    "irregular_form_length_003": 2,
+    "irregular_form_lexical_content_the_003": 2,
+    "irregular_form_relative_token_position_003": 2,
+    "irregular_form_title_case_003": 2,
+    "main_verb_absolute_token_position_003": 2,
+    "main_verb_length_003": 2,
+    "main_verb_lexical_content_the_003": 2,
+    "main_verb_relative_token_position_003": 2,
+    "main_verb_title_case_003": 2,
+    "syntactic_category_absolute_position_003": 2,
+    "syntactic_category_length_003": 2,
+    "syntactic_category_lexical_content_the_003": 2,
+    "syntactic_category_relative_position_003": 2,
+    "syntactic_category_title_case_003": 2,
+    "antonyms_absolute_token_position_01": 2,
+    "antonyms_length_01": 2,
+    "antonyms_lexical_content_the_01": 2,
+    "antonyms_relative_position_01": 2,
+    "antonyms_title_case_01": 2,
+    "control_raising_absolute_token_position_01": 2,
+    "control_raising_length_01": 2,
+    "control_raising_lexical_content_the_01": 2,
+    "control_raising_relative_token_position_01": 2,
+    "control_raising_title_case_01": 2,
+    "irregular_form_absolute_token_position_01": 2,
+    "irregular_form_length_01": 2,
+    "irregular_form_lexical_content_the_01": 2,
+    "irregular_form_relative_token_position_01": 2,
+    "irregular_form_title_case_01": 2,
+    "main_verb_absolute_token_position_01": 2,
+    "main_verb_length_01": 2,
+    "main_verb_lexical_content_the_01": 2,
+    "main_verb_relative_token_position_01": 2,
+    "main_verb_title_case_01": 2,
+    "syntactic_category_absolute_position_01": 2,
+    "syntactic_category_length_01": 2,
+    "syntactic_category_lexical_content_the_01": 2,
+    "syntactic_category_relative_position_01": 2,
+    "syntactic_category_title_case_01": 2,
 }
 
 glue_processors = {
@@ -539,6 +4694,117 @@ glue_processors = {
     "qnli": QnliProcessor,
     "rte": RteProcessor,
     "wnli": WnliProcessor,
+    "boolq": BoolQProcessor,
+    "length_control": length_control_Processor,
+    "syntactic_category_control": syntactic_category_control_Processor,
+    "antonyms_control": antonyms_control_Processor,
+    "control_raising_control": control_raising_control_Processor,
+    "absolute_token_position_control": absolute_token_position_control_Processor,
+    "irregular_form_control": irregular_form_control_Processor,
+    "lexical_content_the_control": lexical_content_the_control_Processor,
+    "relative_position_control": relative_position_control_Processor,
+    "title_case_control": title_case_control_Processor,
+    "main_verb_control": main_verb_control_Processor,
+    "antonyms_absolute_token_position_namb": antonyms_absolute_token_position_namb_Processor,
+    "antonyms_length_namb": antonyms_length_namb_Processor,
+    "antonyms_lexical_content_the_namb": antonyms_lexical_content_the_namb_Processor,
+    "antonyms_relative_position_namb": antonyms_relative_position_namb_Processor,
+    "antonyms_title_case_namb": antonyms_title_case_namb_Processor,
+    "control_raising_absolute_token_position_namb": control_raising_absolute_token_position_namb_Processor,
+    "control_raising_length_namb": control_raising_length_namb_Processor,
+    "control_raising_lexical_content_the_namb": control_raising_lexical_content_the_namb_Processor,
+    "control_raising_relative_token_position_namb": control_raising_relative_token_position_namb_Processor,
+    "control_raising_title_case_namb": control_raising_title_case_namb_Processor,
+    "irregular_form_absolute_token_position_namb": irregular_form_absolute_token_position_namb_Processor,
+    "irregular_form_length_namb": irregular_form_length_namb_Processor,
+    "irregular_form_lexical_content_the_namb": irregular_form_lexical_content_the_namb_Processor,
+    "irregular_form_relative_token_position_namb": irregular_form_relative_token_position_namb_Processor,
+    "irregular_form_title_case_namb": irregular_form_title_case_namb_Processor,
+    "main_verb_absolute_token_position_namb": main_verb_absolute_token_position_namb_Processor,
+    "main_verb_length_namb": main_verb_length_namb_Processor,
+    "main_verb_lexical_content_the_namb": main_verb_lexical_content_the_namb_Processor,
+    "main_verb_relative_token_position_namb": main_verb_relative_token_position_namb_Processor,
+    "main_verb_title_case_namb": main_verb_title_case_namb_Processor,
+    "syntactic_category_absolute_position_namb": syntactic_category_absolute_position_namb_Processor,
+    "syntactic_category_length_namb": syntactic_category_length_namb_Processor,
+    "syntactic_category_lexical_content_the_namb": syntactic_category_lexical_content_the_namb_Processor,
+    "syntactic_category_relative_position_namb": syntactic_category_relative_position_namb_Processor,
+    "syntactic_category_title_case_namb": syntactic_category_title_case_namb_Processor,
+    "antonyms_absolute_token_position_001": antonyms_absolute_token_position_001_Processor,
+    "antonyms_length_001": antonyms_length_001_Processor,
+    "antonyms_lexical_content_the_001": antonyms_lexical_content_the_001_Processor,
+    "antonyms_relative_position_001": antonyms_relative_position_001_Processor,
+    "antonyms_title_case_001": antonyms_title_case_001_Processor,
+    "control_raising_absolute_token_position_001": control_raising_absolute_token_position_001_Processor,
+    "control_raising_length_001": control_raising_length_001_Processor,
+    "control_raising_lexical_content_the_001": control_raising_lexical_content_the_001_Processor,
+    "control_raising_relative_token_position_001": control_raising_relative_token_position_001_Processor,
+    "control_raising_title_case_001": control_raising_title_case_001_Processor,
+    "irregular_form_absolute_token_position_001": irregular_form_absolute_token_position_001_Processor,
+    "irregular_form_length_001": irregular_form_length_001_Processor,
+    "irregular_form_lexical_content_the_001": irregular_form_lexical_content_the_001_Processor,
+    "irregular_form_relative_token_position_001": irregular_form_relative_token_position_001_Processor,
+    "irregular_form_title_case_001": irregular_form_title_case_001_Processor,
+    "main_verb_absolute_token_position_001": main_verb_absolute_token_position_001_Processor,
+    "main_verb_length_001": main_verb_length_001_Processor,
+    "main_verb_lexical_content_the_001": main_verb_lexical_content_the_001_Processor,
+    "main_verb_relative_token_position_001": main_verb_relative_token_position_001_Processor,
+    "main_verb_title_case_001": main_verb_title_case_001_Processor,
+    "syntactic_category_absolute_position_001": syntactic_category_absolute_position_001_Processor,
+    "syntactic_category_length_001": syntactic_category_length_001_Processor,
+    "syntactic_category_lexical_content_the_001": syntactic_category_lexical_content_the_001_Processor,
+    "syntactic_category_relative_position_001": syntactic_category_relative_position_001_Processor,
+    "syntactic_category_title_case_001": syntactic_category_title_case_001_Processor,
+    "antonyms_absolute_token_position_003": antonyms_absolute_token_position_003_Processor,
+    "antonyms_length_003": antonyms_length_003_Processor,
+    "antonyms_lexical_content_the_003": antonyms_lexical_content_the_003_Processor,
+    "antonyms_relative_position_003": antonyms_relative_position_003_Processor,
+    "antonyms_title_case_003": antonyms_title_case_003_Processor,
+    "control_raising_absolute_token_position_003": control_raising_absolute_token_position_003_Processor,
+    "control_raising_length_003": control_raising_length_003_Processor,
+    "control_raising_lexical_content_the_003": control_raising_lexical_content_the_003_Processor,
+    "control_raising_relative_token_position_003": control_raising_relative_token_position_003_Processor,
+    "control_raising_title_case_003": control_raising_title_case_003_Processor,
+    "irregular_form_absolute_token_position_003": irregular_form_absolute_token_position_003_Processor,
+    "irregular_form_length_003": irregular_form_length_003_Processor,
+    "irregular_form_lexical_content_the_003": irregular_form_lexical_content_the_003_Processor,
+    "irregular_form_relative_token_position_003": irregular_form_relative_token_position_003_Processor,
+    "irregular_form_title_case_003": irregular_form_title_case_003_Processor,
+    "main_verb_absolute_token_position_003": main_verb_absolute_token_position_003_Processor,
+    "main_verb_length_003": main_verb_length_003_Processor,
+    "main_verb_lexical_content_the_003": main_verb_lexical_content_the_003_Processor,
+    "main_verb_relative_token_position_003": main_verb_relative_token_position_003_Processor,
+    "main_verb_title_case_003": main_verb_title_case_003_Processor,
+    "syntactic_category_absolute_position_003": syntactic_category_absolute_position_003_Processor,
+    "syntactic_category_length_003": syntactic_category_length_003_Processor,
+    "syntactic_category_lexical_content_the_003": syntactic_category_lexical_content_the_003_Processor,
+    "syntactic_category_relative_position_003": syntactic_category_relative_position_003_Processor,
+    "syntactic_category_title_case_003": syntactic_category_title_case_003_Processor,
+    "antonyms_absolute_token_position_01": antonyms_absolute_token_position_01_Processor,
+    "antonyms_length_01": antonyms_length_01_Processor,
+    "antonyms_lexical_content_the_01": antonyms_lexical_content_the_01_Processor,
+    "antonyms_relative_position_01": antonyms_relative_position_01_Processor,
+    "antonyms_title_case_01": antonyms_title_case_01_Processor,
+    "control_raising_absolute_token_position_01": control_raising_absolute_token_position_01_Processor,
+    "control_raising_length_01": control_raising_length_01_Processor,
+    "control_raising_lexical_content_the_01": control_raising_lexical_content_the_01_Processor,
+    "control_raising_relative_token_position_01": control_raising_relative_token_position_01_Processor,
+    "control_raising_title_case_01": control_raising_title_case_01_Processor,
+    "irregular_form_absolute_token_position_01": irregular_form_absolute_token_position_01_Processor,
+    "irregular_form_length_01": irregular_form_length_01_Processor,
+    "irregular_form_lexical_content_the_01": irregular_form_lexical_content_the_01_Processor,
+    "irregular_form_relative_token_position_01": irregular_form_relative_token_position_01_Processor,
+    "irregular_form_title_case_01": irregular_form_title_case_01_Processor,
+    "main_verb_absolute_token_position_01": main_verb_absolute_token_position_01_Processor,
+    "main_verb_length_01": main_verb_length_01_Processor,
+    "main_verb_lexical_content_the_01": main_verb_lexical_content_the_01_Processor,
+    "main_verb_relative_token_position_01": main_verb_relative_token_position_01_Processor,
+    "main_verb_title_case_01": main_verb_title_case_01_Processor,
+    "syntactic_category_absolute_position_01": syntactic_category_absolute_position_01_Processor,
+    "syntactic_category_length_01": syntactic_category_length_01_Processor,
+    "syntactic_category_lexical_content_the_01": syntactic_category_lexical_content_the_01_Processor,
+    "syntactic_category_relative_position_01": syntactic_category_relative_position_01_Processor,
+    "syntactic_category_title_case_01": syntactic_category_title_case_01_Processor,
 }
 
 glue_output_modes = {
@@ -552,4 +4818,115 @@ glue_output_modes = {
     "qnli": "classification",
     "rte": "classification",
     "wnli": "classification",
+    "boolq": "classification",
+    "length_control": "classification",
+    "syntactic_category_control": "classification",
+    "antonyms_control": "classification",
+    "control_raising_control":"classification",
+    "absolute_token_position_control": "classification",
+    "lexical_content_the_control": "classification",
+    "relative_position_control": "classification",
+    "title_case_control": "classification",
+    "main_verb_control": "classification",
+    "irregular_form_control": "classification",
+    "antonyms_absolute_token_position_namb": "classification",
+    "antonyms_length_namb": "classification",
+    "antonyms_lexical_content_the_namb": "classification",
+    "antonyms_relative_position_namb": "classification",
+    "antonyms_title_case_namb": "classification",
+    "control_raising_absolute_token_position_namb": "classification",
+    "control_raising_length_namb": "classification",
+    "control_raising_lexical_content_the_namb": "classification",
+    "control_raising_relative_token_position_namb": "classification",
+    "control_raising_title_case_namb": "classification",
+    "irregular_form_absolute_token_position_namb": "classification",
+    "irregular_form_length_namb": "classification",
+    "irregular_form_lexical_content_the_namb": "classification",
+    "irregular_form_relative_token_position_namb": "classification",
+    "irregular_form_title_case_namb": "classification",
+    "main_verb_absolute_token_position_namb": "classification",
+    "main_verb_length_namb": "classification",
+    "main_verb_lexical_content_the_namb": "classification",
+    "main_verb_relative_token_position_namb": "classification",
+    "main_verb_title_case_namb": "classification",
+    "syntactic_category_absolute_position_namb": "classification",
+    "syntactic_category_length_namb": "classification",
+    "syntactic_category_lexical_content_the_namb": "classification",
+    "syntactic_category_relative_position_namb": "classification",
+    "syntactic_category_title_case_namb": "classification",
+    "antonyms_absolute_token_position_001": "classification",
+    "antonyms_length_001": "classification",
+    "antonyms_lexical_content_the_001": "classification",
+    "antonyms_relative_position_001": "classification",
+    "antonyms_title_case_001": "classification",
+    "control_raising_absolute_token_position_001": "classification",
+    "control_raising_length_001": "classification",
+    "control_raising_lexical_content_the_001": "classification",
+    "control_raising_relative_token_position_001": "classification",
+    "control_raising_title_case_001": "classification",
+    "irregular_form_absolute_token_position_001": "classification",
+    "irregular_form_length_001": "classification",
+    "irregular_form_lexical_content_the_001": "classification",
+    "irregular_form_relative_token_position_001": "classification",
+    "irregular_form_title_case_001": "classification",
+    "main_verb_absolute_token_position_001": "classification",
+    "main_verb_length_001": "classification",
+    "main_verb_lexical_content_the_001": "classification",
+    "main_verb_relative_token_position_001": "classification",
+    "main_verb_title_case_001": "classification",
+    "syntactic_category_absolute_position_001": "classification",
+    "syntactic_category_length_001": "classification",
+    "syntactic_category_lexical_content_the_001": "classification",
+    "syntactic_category_relative_position_001": "classification",
+    "syntactic_category_title_case_001": "classification",
+    "antonyms_absolute_token_position_003": "classification",
+    "antonyms_length_003": "classification",
+    "antonyms_lexical_content_the_003": "classification",
+    "antonyms_relative_position_003": "classification",
+    "antonyms_title_case_003": "classification",
+    "control_raising_absolute_token_position_003": "classification",
+    "control_raising_length_003": "classification",
+    "control_raising_lexical_content_the_003": "classification",
+    "control_raising_relative_token_position_003": "classification",
+    "control_raising_title_case_003": "classification",
+    "irregular_form_absolute_token_position_003": "classification",
+    "irregular_form_length_003": "classification",
+    "irregular_form_lexical_content_the_003": "classification",
+    "irregular_form_relative_token_position_003": "classification",
+    "irregular_form_title_case_003": "classification",
+    "main_verb_absolute_token_position_003": "classification",
+    "main_verb_length_003": "classification",
+    "main_verb_lexical_content_the_003": "classification",
+    "main_verb_relative_token_position_003": "classification",
+    "main_verb_title_case_003": "classification",
+    "syntactic_category_absolute_position_003": "classification",
+    "syntactic_category_length_003": "classification",
+    "syntactic_category_lexical_content_the_003": "classification",
+    "syntactic_category_relative_position_003": "classification",
+    "syntactic_category_title_case_003": "classification",
+    "antonyms_absolute_token_position_01": "classification",
+    "antonyms_length_01": "classification",
+    "antonyms_lexical_content_the_01": "classification",
+    "antonyms_relative_position_01": "classification",
+    "antonyms_title_case_01": "classification",
+    "control_raising_absolute_token_position_01": "classification",
+    "control_raising_length_01": "classification",
+    "control_raising_lexical_content_the_01": "classification",
+    "control_raising_relative_token_position_01": "classification",
+    "control_raising_title_case_01": "classification",
+    "irregular_form_absolute_token_position_01": "classification",
+    "irregular_form_length_01": "classification",
+    "irregular_form_lexical_content_the_01": "classification",
+    "irregular_form_relative_token_position_01": "classification",
+    "irregular_form_title_case_01": "classification",
+    "main_verb_absolute_token_position_01": "classification",
+    "main_verb_length_01": "classification",
+    "main_verb_lexical_content_the_01": "classification",
+    "main_verb_relative_token_position_01": "classification",
+    "main_verb_title_case_01": "classification",
+    "syntactic_category_absolute_position_01": "classification",
+    "syntactic_category_length_01": "classification",
+    "syntactic_category_lexical_content_the_01": "classification",
+    "syntactic_category_relative_position_01": "classification",
+    "syntactic_category_title_case_01": "classification",
 }
