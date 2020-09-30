@@ -366,19 +366,16 @@ def evaluate(args, model, tokenizer, prefix=""):
         #Write outputs to files
         all_input_tokens = []
 
-        if args.task_name.split('_')[-1] in ['namb','001','003','01']:
-            with open(os.path.join(args.data_dir, 'test_combined.jsonl'), 'r') as reader:
-                for line in reader:
-                    all_input_tokens.append(json.loads(line)["sentence"])
-        else:
-            with open(os.path.join(args.data_dir, 'test.jsonl'), 'r') as reader:
-                for line in reader:
-                    all_input_tokens.append(json.loads(line)["sentence"])
+
+        with open(os.path.join(args.data_dir, 'test.jsonl'), 'r') as reader:
+            for line in reader:
+                all_input_tokens.append([json.loads(line)["sentence_base"],json.loads(line)["sentence_transform"]])
 
         all_output_file = os.path.join(eval_output_dir, prefix, "all_outputs.jsonl")
         with open(all_output_file, "w") as writer:
             for i, text in enumerate(all_input_tokens):
-                json.dump({'sentence':text,
+                json.dump({'sentence_base':text[0],
+                           'sentence_transform':text[1],
                            'pred':preds[i].item(),
                            'label':out_label_ids[i].item()},writer)
                 writer.write('\n')
