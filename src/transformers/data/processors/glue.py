@@ -4559,6 +4559,43 @@ class syntactic_category_title_case_01_Processor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
         return examples
 
+class Test_Pair_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence_base"]
+            text_b = line["sentence_transform"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+        return examples
+
 glue_tasks_num_labels = {
     "cola": 2,
     "mnli": 3,
@@ -4681,6 +4718,7 @@ glue_tasks_num_labels = {
     "syntactic_category_lexical_content_the_01": 2,
     "syntactic_category_relative_position_01": 2,
     "syntactic_category_title_case_01": 2,
+    "test_pair": 2,
 }
 
 glue_processors = {
@@ -4805,6 +4843,7 @@ glue_processors = {
     "syntactic_category_lexical_content_the_01": syntactic_category_lexical_content_the_01_Processor,
     "syntactic_category_relative_position_01": syntactic_category_relative_position_01_Processor,
     "syntactic_category_title_case_01": syntactic_category_title_case_01_Processor,
+    "test_pair": Test_Pair_Processor,
 }
 
 glue_output_modes = {
@@ -4929,4 +4968,5 @@ glue_output_modes = {
     "syntactic_category_lexical_content_the_01": "classification",
     "syntactic_category_relative_position_01": "classification",
     "syntactic_category_title_case_01": "classification",
+    "test_pair": "classification",
 }

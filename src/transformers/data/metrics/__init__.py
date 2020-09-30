@@ -296,6 +296,8 @@ if _has_sklearn:
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "syntactic_category_title_case_01":
             return {"acc": simple_accuracy(preds, labels)}
+        elif task_name == "test_pair":
+            return {"acc": simple_accuracy(preds, labels)}
         else:
             raise KeyError(task_name)
 
