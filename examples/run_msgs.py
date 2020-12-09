@@ -405,6 +405,7 @@ def evaluate(args, model, tokenizer, prefix=""):
         logger.info("Condition = in_dom, label = 0, num_exps = %s, acc = %s", len(in_neg), str(in_neg_acc))
         logger.info("Condition = out_dom, label = 1, num_exps = %s, acc = %s", len(out_pos), str(out_pos_acc))
         logger.info("Condition = out_dom, label = 0, num_exps = %s, acc = %s", len(out_neg), str(out_neg_acc))
+        logger.info("Condition = out_dom, pearson_corr = %s, p_val = %s", pearson_corr, p_val)
 
         #Add results file
         all_results_file = os.path.join(eval_output_dir, prefix, "all_results.jsonl")
