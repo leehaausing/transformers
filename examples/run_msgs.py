@@ -414,8 +414,7 @@ def evaluate(args, model, tokenizer, prefix=""):
                        'learning_rate':args.learning_rate,
                        '#samples_per_id':4,
                        'overall_acc': result['acc'],
-                       'detail_accs': [in_pos_acc, in_neg_acc,
-                                       out_pos_acc, out_neg_acc],
+                       'detail_accs': [in_pos_acc, in_neg_acc, out_pos_acc, out_neg_acc],
                        'pearson_corr': pearson_corr,
                        'p_value': p_val},writer)
 
