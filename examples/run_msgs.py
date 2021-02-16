@@ -373,7 +373,7 @@ def evaluate(args, model, tokenizer, prefix=""):
 
         with open(os.path.join(args.data_dir, 'test_full.jsonl'), 'r') as reader:
             for line in reader:
-                all_input_tokens.append([json.loads(line)["sentence_base"],json.loads(line)["sentence_transform"]])
+                all_input_tokens.append(json.loads(line)["sentence"])
 
         all_output_file = os.path.join(eval_output_dir, prefix, "all_outputs.jsonl")
         with open(all_output_file, "w") as writer:
