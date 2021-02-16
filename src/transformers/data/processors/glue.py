@@ -4670,6 +4670,42 @@ class Subject_Aux_Inversion_Pair_Processor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
 
+class cogsci_paper_Processor(DataProcessor):
+
+    def get_example_from_tensor_dict(self, tensor_dict):
+        """See base class."""
+        return InputExample(
+            tensor_dict["idx"].numpy(),
+            tensor_dict["sentence"].numpy().decode("utf-8"),
+            str(tensor_dict["label"].numpy()),
+        )
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "train.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        with open(os.path.join(data_dir, "test_full.jsonl"), "r", encoding="utf-8-sig") as f:
+            json_lines = [json.loads(line) for line in f.readlines()]
+        return self._create_examples(json_lines, "dev")
+
+    def get_labels(self):
+        """See base class."""
+        return ["0", "1"]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for i, line in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            text_a = line["sentence"]
+            label = str(line["linguistic_feature_label"])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+        return examples
+
 glue_tasks_num_labels = {
     "cola": 2,
     "mnli": 3,
@@ -4795,6 +4831,7 @@ glue_tasks_num_labels = {
     "test_pair": 2,
     "main_verb": 2,
     "subject_aux_inversion": 2,
+    "cogsci_paper": 2,
 }
 
 glue_processors = {
@@ -4922,6 +4959,7 @@ glue_processors = {
     "test_pair": Test_Pair_Processor,
     "main_verb": Main_Verb_Pair_Processor,
     "subject_aux_inversion": Subject_Aux_Inversion_Pair_Processor,
+    "cogsci_paper": cogsci_paper_Processor,
 }
 
 glue_output_modes = {
@@ -5049,4 +5087,5 @@ glue_output_modes = {
     "test_pair": "classification",
     "main_verb": "classification",
     "subject_aux_inversion": "classification",
+    "cogsci_paper": "classification",
 }
