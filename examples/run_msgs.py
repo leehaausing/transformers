@@ -367,7 +367,11 @@ def evaluate(args, model, tokenizer, prefix=""):
         all_input_tokens = []
 
 
-        with open(os.path.join(args.data_dir, 'test.jsonl'), 'r') as reader:
+        #with open(os.path.join(args.data_dir, 'test.jsonl'), 'r') as reader:
+            #for line in reader:
+                #all_input_tokens.append([json.loads(line)["sentence_base"],json.loads(line)["sentence_transform"]])
+
+        with open(os.path.join(args.data_dir, 'test_full.jsonl'), 'r') as reader:
             for line in reader:
                 all_input_tokens.append([json.loads(line)["sentence_base"],json.loads(line)["sentence_transform"]])
 
