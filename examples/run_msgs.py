@@ -387,35 +387,46 @@ def evaluate(args, model, tokenizer, prefix=""):
                 all_outputs.append(json.loads(line))
         num_exps = len(all_outputs)
 
-        in_pos = [all_outputs[i] for i in range(num_exps) if i % 4 == 0]
-        in_neg = [all_outputs[i] for i in range(num_exps) if i % 4 == 1]
-        out_pos = [all_outputs[i] for i in range(num_exps) if i % 4 == 2]
-        out_neg = [all_outputs[i] for i in range(num_exps) if i % 4 == 3]
+        #in_pos = [all_outputs[i] for i in range(num_exps) if i % 4 == 0]
+        #in_neg = [all_outputs[i] for i in range(num_exps) if i % 4 == 1]
+        #out_pos = [all_outputs[i] for i in range(num_exps) if i % 4 == 2]
+        #out_neg = [all_outputs[i] for i in range(num_exps) if i % 4 == 3]
 
-        test_label = [int(all_outputs[i]['label']) for i in range(num_exps) if ((i % 4 == 2) or (i % 4 == 3))]
-        test_pred = [int(all_outputs[i]['pred']) for i in range(num_exps) if ((i % 4 == 2) or (i % 4 == 3))]
-        pearson_corr, p_val = pearsonr(np.array(test_pred), np.array(test_label))
+        test_label = [int(all_outputs[i]['label']) for i in range(num_exps)]
+        test_pred = [int(all_outputs[i]['pred']) for i in range(num_exps)]
+        #test_label = [int(all_outputs[i]['label']) for i in range(num_exps) if ((i % 4 == 2) or (i % 4 == 3))]
+        #test_pred = [int(all_outputs[i]['pred']) for i in range(num_exps) if ((i % 4 == 2) or (i % 4 == 3))]
+        #pearson_corr, p_val = pearsonr(np.array(test_pred), np.array(test_label))
 
-        in_pos_acc = len([elem for elem in in_pos if elem['pred'] == elem['label']]) / len(in_pos)
-        in_neg_acc = len([elem for elem in in_neg if elem['pred'] == elem['label']]) / len(in_neg)
-        out_pos_acc = len([elem for elem in out_pos if elem['pred'] == elem['label']]) / len(out_pos)
-        out_neg_acc = len([elem for elem in out_neg if elem['pred'] == elem['label']]) / len(out_neg)
+        #in_pos_acc = len([elem for elem in in_pos if elem['pred'] == elem['label']]) / len(in_pos)
+        #in_neg_acc = len([elem for elem in in_neg if elem['pred'] == elem['label']]) / len(in_neg)
+        #out_pos_acc = len([elem for elem in out_pos if elem['pred'] == elem['label']]) / len(out_pos)
+        #out_neg_acc = len([elem for elem in out_neg if elem['pred'] == elem['label']]) / len(out_neg)
 
-        logger.info("Condition = in_dom, label = 1, num_exps = %s, acc = %s", len(in_pos), str(in_pos_acc))
-        logger.info("Condition = in_dom, label = 0, num_exps = %s, acc = %s", len(in_neg), str(in_neg_acc))
-        logger.info("Condition = out_dom, label = 1, num_exps = %s, acc = %s", len(out_pos), str(out_pos_acc))
-        logger.info("Condition = out_dom, label = 0, num_exps = %s, acc = %s", len(out_neg), str(out_neg_acc))
-        logger.info("Condition = out_dom, pearson_corr = %s, p_val = %s", pearson_corr, p_val)
+        #logger.info("Condition = in_dom, label = 1, num_exps = %s, acc = %s", len(in_pos), str(in_pos_acc))
+        #logger.info("Condition = in_dom, label = 0, num_exps = %s, acc = %s", len(in_neg), str(in_neg_acc))
+        #logger.info("Condition = out_dom, label = 1, num_exps = %s, acc = %s", len(out_pos), str(out_pos_acc))
+        #logger.info("Condition = out_dom, label = 0, num_exps = %s, acc = %s", len(out_neg), str(out_neg_acc))
+        logger.info("pearson_corr = %s, p_val = %s", pearson_corr, p_val)
 
         #Add results file
+        #all_results_file = os.path.join(eval_output_dir, prefix, "all_results.jsonl")
+        #with open(all_results_file, "w") as writer:
+            #json.dump({'model':args.model_name_or_path.split('/')[-1],
+                       #'task_name':args.task_name.lower(),
+                       #'learning_rate':args.learning_rate,
+                       #'#samples_per_id':4,
+                       #'overall_acc': result['acc'],
+                       #'detail_accs': [in_pos_acc, in_neg_acc, out_pos_acc, out_neg_acc],
+                       #'pearson_corr': pearson_corr,
+                       #'p_value': p_val},writer)
         all_results_file = os.path.join(eval_output_dir, prefix, "all_results.jsonl")
         with open(all_results_file, "w") as writer:
             json.dump({'model':args.model_name_or_path.split('/')[-1],
                        'task_name':args.task_name.lower(),
                        'learning_rate':args.learning_rate,
-                       '#samples_per_id':4,
+                       '#samples_per_id':2,
                        'overall_acc': result['acc'],
-                       'detail_accs': [in_pos_acc, in_neg_acc, out_pos_acc, out_neg_acc],
                        'pearson_corr': pearson_corr,
                        'p_value': p_val},writer)
 
