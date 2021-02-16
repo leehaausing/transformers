@@ -398,6 +398,7 @@ def evaluate(args, model, tokenizer, prefix=""):
 
         test_label = [int(all_outputs[i]['label']) for i in range(num_exps)]
         test_pred = [int(all_outputs[i]['pred']) for i in range(num_exps)]
+        pearson_corr, p_val = pearsonr(np.array(test_pred), np.array(test_label))
         #test_label = [int(all_outputs[i]['label']) for i in range(num_exps) if ((i % 4 == 2) or (i % 4 == 3))]
         #test_pred = [int(all_outputs[i]['pred']) for i in range(num_exps) if ((i % 4 == 2) or (i % 4 == 3))]
         #pearson_corr, p_val = pearsonr(np.array(test_pred), np.array(test_label))
