@@ -302,6 +302,8 @@ if _has_sklearn:
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "subject_aux_inversion":
             return {"acc": simple_accuracy(preds, labels)}
+        elif task_name == "cogsci_paper":
+            return {"acc": simple_accuracy(preds, labels)}
         else:
             raise KeyError(task_name)
 
