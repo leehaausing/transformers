@@ -367,30 +367,30 @@ def evaluate(args, model, tokenizer, prefix=""):
         all_input_tokens = []
 
 
-        #with open(os.path.join(args.data_dir, 'test.jsonl'), 'r') as reader:
-            #for line in reader:
-                #all_input_tokens.append([json.loads(line)["sentence_base"],json.loads(line)["sentence_transform"]])
-
-        with open(os.path.join(args.data_dir, 'test_full.jsonl'), 'r') as reader:
+        with open(os.path.join(args.data_dir, 'test.jsonl'), 'r') as reader:
             for line in reader:
-                all_input_tokens.append(json.loads(line)["sentence"])
+                all_input_tokens.append([json.loads(line)["sentence_base"],json.loads(line)["sentence_transform"]])
+
+        #with open(os.path.join(args.data_dir, 'test_full.jsonl'), 'r') as reader:
+            #for line in reader:
+                #all_input_tokens.append(json.loads(line)["sentence"])
 
         all_output_file = os.path.join(eval_output_dir, prefix, "all_outputs.jsonl")
 
-        with open(all_output_file, "w") as writer:
-            for i, text in enumerate(all_input_tokens):
-                json.dump({'sentence_base':text,
-                           'pred':preds[i].item(),
-                           'label':out_label_ids[i].item()},writer)
-                writer.write('\n')
-
         #with open(all_output_file, "w") as writer:
             #for i, text in enumerate(all_input_tokens):
-                #json.dump({'sentence_base':text[0],
-                           #'sentence_transform':text[1],
+                #json.dump({'sentence_base':text,
                            #'pred':preds[i].item(),
                            #'label':out_label_ids[i].item()},writer)
                 #writer.write('\n')
+
+        with open(all_output_file, "w") as writer:
+            for i, text in enumerate(all_input_tokens):
+                json.dump({'sentence_base':text[0],
+                           'sentence_transform':text[1],
+                           'pred':preds[i].item(),
+                           'label':out_label_ids[i].item()},writer)
+                writer.write('\n')
 
         #Outputing results in details
         all_outputs = []
