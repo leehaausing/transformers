@@ -304,6 +304,12 @@ if _has_sklearn:
             return {"acc": simple_accuracy(preds, labels)}
         elif task_name == "cogsci_paper":
             return {"acc": simple_accuracy(preds, labels)}
+        elif task_name == "subj_aux_annotated":
+            return {"acc": simple_accuracy(preds, labels)}
+        elif task_name == "main_verb_annotated":
+            return {"acc": simple_accuracy(preds, labels)}
+        elif task_name == "reflexives_annotated":
+            return {"acc": simple_accuracy(preds, labels)}
         else:
             raise KeyError(task_name)
 
